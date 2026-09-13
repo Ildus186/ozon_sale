@@ -1,7 +1,6 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
-import fetch from "node-fetch";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -12,16 +11,23 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const app = express();
-app.use(cors());
-app.use(express.json());
+// ---------- Определяем, использовать ли Redis ----------
 
-const OZON_URL = "https://api-seller.ozon.ru/v4/posting/fbs/list";
-const PAGE_LIMIT = 100;
-const MAX_PAGES = 100;
-const PAGE_DELAY_MS = 200;
+const USE_REDIS =
+  Boolean(process.env.UPSTASH_REDIS_REST_URL) &&
+  Boolean(process.env.UPSTASH_REDIS_REST_TOKEN);
 
-// ---------- Хранилище оплаченных заказов (по пользователям) ----------
+let redis = null;
+
+if (USE_REDIS) {
+  const { Redis } = await import("@upstash/redis");
+  redis = Redis.fromEnv();
+  console.log("🔴 Хранилище оплаченных: Upstash Redis");
+} else {
+  console.log("📁 Хранилище оплаченных: локальные JSON-файлы");
+}
+
+// ---------- Файловое хранилище (fallback для локальной разработки) ----------
 
 const DATA_DIR = path.join(__dirname, "data");
 
@@ -35,30 +41,61 @@ function paidFileFor(userId) {
   return path.join(DATA_DIR, `paid_${userId}.json`);
 }
 
-function loadPaidSet(userId) {
+function loadPaidLocal(userId) {
   ensureDataDir();
   try {
     const file = paidFileFor(userId);
-    if (!fs.existsSync(file)) return new Set();
+    if (!fs.existsSync(file)) return [];
     const raw = fs.readFileSync(file, "utf-8");
     const arr = JSON.parse(raw);
-    return new Set(Array.isArray(arr) ? arr : []);
+    return Array.isArray(arr) ? arr : [];
   } catch (err) {
     console.error(`⚠️ Не удалось прочитать ${userId} paid:`, err.message);
-    return new Set();
+    return [];
   }
 }
 
-function savePaidSet(userId, set) {
+function savePaidLocal(userId, arr) {
   ensureDataDir();
   fs.writeFileSync(
     paidFileFor(userId),
-    JSON.stringify(Array.from(set), null, 2),
+    JSON.stringify(arr, null, 2),
     "utf-8"
   );
 }
 
-// ---------- Список пользователей (для фронта) ----------
+// ---------- Универсальные функции (Redis или файлы) ----------
+
+const paidKey = (userId) => `ozon:paid:${userId}`;
+
+async function loadPaid(userId) {
+  if (USE_REDIS) {
+    const arr = await redis.get(paidKey(userId));
+    return Array.isArray(arr) ? arr : [];
+  }
+  return loadPaidLocal(userId);
+}
+
+async function savePaid(userId, arr) {
+  if (USE_REDIS) {
+    await redis.set(paidKey(userId), arr);
+  } else {
+    savePaidLocal(userId, arr);
+  }
+}
+
+// ---------- Express ----------
+
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+const OZON_URL = "https://api-seller.ozon.ru/v4/posting/fbs/list";
+const PAGE_LIMIT = 100;
+const MAX_PAGES = 100;
+const PAGE_DELAY_MS = 200;
+
+// ---------- Список пользователей ----------
 
 app.get("/api/users", (req, res) => {
   const list = Object.values(USERS).map((u) => ({
@@ -71,24 +108,38 @@ app.get("/api/users", (req, res) => {
 
 // ---------- Эндпоинты для оплаченных ----------
 
-app.get("/api/paid", (req, res) => {
-  const userId = req.query.userId || "ildus";
-  const set = loadPaidSet(userId);
-  res.json({ paid: Array.from(set) });
+app.get("/api/paid", async (req, res) => {
+  try {
+    const userId = req.query.userId || "ildus";
+    const arr = await loadPaid(userId);
+    res.json({ paid: arr });
+  } catch (err) {
+    console.error("❌ GET /api/paid:", err);
+    res.status(500).json({ error: err.message });
+  }
 });
 
-app.post("/api/paid", (req, res) => {
-  const { userId = "ildus", postingNumber, isPaid } = req.body || {};
-  if (!postingNumber || typeof isPaid !== "boolean") {
-    return res.status(400).json({ error: "Нужны postingNumber и isPaid" });
+app.post("/api/paid", async (req, res) => {
+  try {
+    const { userId = "ildus", postingNumber, isPaid } = req.body || {};
+    if (!postingNumber || typeof isPaid !== "boolean") {
+      return res.status(400).json({ error: "Нужны postingNumber и isPaid" });
+    }
+
+    let arr = await loadPaid(userId);
+
+    if (isPaid) {
+      if (!arr.includes(postingNumber)) arr.push(postingNumber);
+    } else {
+      arr = arr.filter((pn) => pn !== postingNumber);
+    }
+
+    await savePaid(userId, arr);
+    res.json({ paid: arr });
+  } catch (err) {
+    console.error("❌ POST /api/paid:", err);
+    res.status(500).json({ error: err.message });
   }
-
-  const set = loadPaidSet(userId);
-  if (isPaid) set.add(postingNumber);
-  else set.delete(postingNumber);
-  savePaidSet(userId, set);
-
-  res.json({ paid: Array.from(set) });
 });
 
 // ---------- Заказы Ozon ----------
@@ -195,8 +246,9 @@ app.post("/api/orders", async (req, res) => {
   }
 });
 
+// ---------- Старт ----------
+
 const PORT = process.env.PORT || 4000;
 app.listen(PORT, () => {
   console.log(`✅ Server running on http://localhost:${PORT}`);
-  console.log(`📁 Данные оплаченных: ${DATA_DIR}`);
 });
