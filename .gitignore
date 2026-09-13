@@ -1,0 +1,17 @@
+# Зависимости
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Секреты и данные
+.env
+server/.env
+server/data/
+
+# Сборка
+client/dist/
+
+# Логи и системное
+*.log
+.DS_Store
+Thumbs.db
