@@ -12,7 +12,6 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ---------- Определяем, использовать ли Redis ----------
-// Поддерживаем разные имена переменных: Upstash, Vercel KV, старые
 const REDIS_URL =
   process.env.UPSTASH_REDIS_REST_URL ||
   process.env.KV_REST_API_URL ||
@@ -34,14 +33,11 @@ if (USE_REDIS) {
   console.log("📁 Хранилище оплаченных: локальные JSON-файлы");
 }
 
-// ---------- Файловое хранилище (fallback для локальной разработки) ----------
-
+// ---------- Файловое хранилище (fallback) ----------
 const DATA_DIR = path.join(__dirname, "data");
 
 function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) {
-    fs.mkdirSync(DATA_DIR, { recursive: true });
-  }
+  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
 }
 
 function paidFileFor(userId) {
@@ -53,26 +49,19 @@ function loadPaidLocal(userId) {
   try {
     const file = paidFileFor(userId);
     if (!fs.existsSync(file)) return [];
-    const raw = fs.readFileSync(file, "utf-8");
-    const arr = JSON.parse(raw);
+    const arr = JSON.parse(fs.readFileSync(file, "utf-8"));
     return Array.isArray(arr) ? arr : [];
-  } catch (err) {
-    console.error(`⚠️ Не удалось прочитать ${userId} paid:`, err.message);
+  } catch {
     return [];
   }
 }
 
 function savePaidLocal(userId, arr) {
   ensureDataDir();
-  fs.writeFileSync(
-    paidFileFor(userId),
-    JSON.stringify(arr, null, 2),
-    "utf-8"
-  );
+  fs.writeFileSync(paidFileFor(userId), JSON.stringify(arr, null, 2), "utf-8");
 }
 
-// ---------- Универсальные функции (Redis или файлы) ----------
-
+// ---------- Универсальные функции ----------
 const paidKey = (userId) => `ozon:paid:${userId}`;
 
 async function loadPaid(userId) {
@@ -92,7 +81,6 @@ async function savePaid(userId, arr) {
 }
 
 // ---------- Express ----------
-
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -103,7 +91,6 @@ const MAX_PAGES = 100;
 const PAGE_DELAY_MS = 200;
 
 // ---------- Список пользователей ----------
-
 app.get("/api/users", (req, res) => {
   const list = Object.values(USERS).map((u) => ({
     id: u.id,
@@ -113,8 +100,7 @@ app.get("/api/users", (req, res) => {
   res.json({ users: list });
 });
 
-// ---------- Эндпоинты для оплаченных ----------
-
+// ---------- Оплаченные ----------
 app.get("/api/paid", async (req, res) => {
   try {
     const userId = req.query.userId || "ildus";
@@ -150,7 +136,6 @@ app.post("/api/paid", async (req, res) => {
 });
 
 // ---------- Заказы Ozon ----------
-
 async function fetchAllPostings(user, filter) {
   const all = [];
   let cursor = "";
@@ -253,9 +238,13 @@ app.post("/api/orders", async (req, res) => {
   }
 });
 
-// ---------- Старт ----------
+// ---------- Запуск ----------
+// Локально — слушаем порт. На Vercel — экспортируем app как serverless-функцию.
+if (!process.env.VERCEL) {
+  const PORT = process.env.PORT || 4000;
+  app.listen(PORT, () => {
+    console.log(`✅ Server running on http://localhost:${PORT}`);
+  });
+}
 
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => {
-  console.log(`✅ Server running on http://localhost:${PORT}`);
-});
+export default app;
