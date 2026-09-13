@@ -12,16 +12,23 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // ---------- Определяем, использовать ли Redis ----------
+// Поддерживаем разные имена переменных: Upstash, Vercel KV, старые
+const REDIS_URL =
+  process.env.UPSTASH_REDIS_REST_URL ||
+  process.env.KV_REST_API_URL ||
+  process.env.REDIS_URL;
 
-const USE_REDIS =
-  Boolean(process.env.UPSTASH_REDIS_REST_URL) &&
-  Boolean(process.env.UPSTASH_REDIS_REST_TOKEN);
+const REDIS_TOKEN =
+  process.env.UPSTASH_REDIS_REST_TOKEN ||
+  process.env.KV_REST_API_TOKEN;
+
+const USE_REDIS = Boolean(REDIS_URL) && Boolean(REDIS_TOKEN);
 
 let redis = null;
 
 if (USE_REDIS) {
   const { Redis } = await import("@upstash/redis");
-  redis = Redis.fromEnv();
+  redis = new Redis({ url: REDIS_URL, token: REDIS_TOKEN });
   console.log("🔴 Хранилище оплаченных: Upstash Redis");
 } else {
   console.log("📁 Хранилище оплаченных: локальные JSON-файлы");
