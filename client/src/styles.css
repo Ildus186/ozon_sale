@@ -1,0 +1,477 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: #f4f6fb;
+  color: #1f2937;
+  transition: background-color 0.25s ease;
+}
+
+.app {
+  min-height: 100vh;
+  padding: 32px 20px 60px;
+}
+
+/* ---------- Переключатель пользователей ---------- */
+
+.user-switch {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.user-tab {
+  padding: 14px 40px;
+  font-size: 18px;
+  font-weight: 700;
+  border: 2px solid #d1d5db;
+  background: #fff;
+  color: #374151;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.15s;
+  position: relative;
+  min-width: 160px;
+  text-align: center;
+}
+
+.user-tab:hover {
+  border-color: #005bff;
+  color: #005bff;
+}
+
+.user-tab.active {
+  background: #005bff;
+  border-color: #005bff;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0, 91, 255, 0.25);
+}
+
+.user-tab.not-configured {
+  opacity: 0.75;
+}
+
+.user-tab-warn {
+  color: #f59e0b;
+  font-size: 14px;
+}
+
+.user-tab.active .user-tab-warn {
+  color: #fef3c7;
+}
+
+.user-switch-loading {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+/* ---------- Заголовок ---------- */
+
+.app-header h1 {
+  margin: 0 0 4px;
+  font-size: 28px;
+  color: #005bff;
+  text-align: center;
+}
+
+.subtitle {
+  margin: 0 0 24px;
+  color: #6b7280;
+  text-align: center;
+}
+
+/* ---------- Панель фильтров ---------- */
+
+.filters {
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  background: #fff;
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  margin-bottom: 20px;
+}
+
+.filters label {
+  display: flex;
+  flex-direction: column;
+  font-size: 13px;
+  color: #4b5563;
+  gap: 4px;
+}
+
+.filters input[type="date"],
+.filters select {
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.filters select {
+  cursor: pointer;
+  min-width: 180px;
+}
+
+.filters button {
+  padding: 10px 20px;
+  background: #005bff;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.filters button:hover:not(:disabled) {
+  background: #0047c9;
+}
+
+.filters button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* ---------- Метрики (Выручка / Прибыль) ---------- */
+
+.metrics {
+  margin-left: auto;
+  display: flex;
+  gap: 12px;
+}
+
+.metric {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding: 8px 14px;
+  background: #f0f7ff;
+  border: 1px solid #cfe3ff;
+  border-radius: 8px;
+  line-height: 1.2;
+  min-width: 140px;
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+
+.metric-profit {
+  background: #effaf1;
+  border-color: #c9ecd0;
+}
+
+.metric-label {
+  font-size: 12px;
+  color: #4b5563;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.metric-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: #005bff;
+  font-variant-numeric: tabular-nums;
+}
+
+.metric-profit .metric-value {
+  color: #16794f;
+}
+
+/* ---------- Таблица ---------- */
+
+.table-wrapper {
+  background: #fff;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  transition: background 0.25s ease;
+}
+
+.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.orders-table th {
+  text-align: left;
+  padding: 14px 16px;
+  background: #f9fafb;
+  color: #374151;
+  font-weight: 600;
+  border-bottom: 1px solid #e5e7eb;
+  white-space: nowrap;
+}
+
+.orders-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid #f1f3f7;
+}
+
+.orders-table tbody tr:hover {
+  background: #f9fbff;
+}
+
+/* ---------- Номер заказа ---------- */
+
+.order-number {
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 16px;
+  color: #111827;
+  letter-spacing: 0.2px;
+  white-space: nowrap;
+}
+
+.order-number-head {
+  font-weight: 800;
+  font-size: 18px;
+  color: #000;
+}
+
+/* ---------- Бейджи статусов ---------- */
+
+.badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #eef2ff;
+  color: #3730a3;
+}
+
+.status-delivered {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.status-cancelled {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.status-delivering {
+  background: #dbeafe;
+  color: #1e40af;
+}
+
+.status-awaiting_packaging,
+.status-awaiting_deliver {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* ---------- Столбец «Оплачен» ---------- */
+
+.col-paid {
+  width: 100px;
+  text-align: center;
+}
+
+.orders-table th.col-paid,
+.orders-table td.col-paid {
+  text-align: center;
+}
+
+.paid-checkbox {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+}
+
+.paid-checkbox input[type="checkbox"] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+
+.paid-checkmark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid #d1d5db;
+  border-radius: 6px;
+  background: #fff;
+  transition: background 0.15s, border-color 0.15s, transform 0.1s;
+}
+
+.paid-checkbox:hover .paid-checkmark {
+  border-color: #16a34a;
+}
+
+.paid-checkbox input[type="checkbox"]:checked + .paid-checkmark {
+  background: #16a34a;
+  border-color: #16a34a;
+}
+
+.paid-checkbox:active .paid-checkmark {
+  transform: scale(0.92);
+}
+
+.paid-checkbox input[type="checkbox"]:focus-visible + .paid-checkmark {
+  outline: 2px solid #16a34a;
+  outline-offset: 2px;
+}
+
+.orders-table tr.row-paid td {
+  background: #f3fdf6;
+}
+
+.orders-table tr.row-paid:hover td {
+  background: #e8faee;
+}
+
+/* ---------- Служебные блоки ---------- */
+
+.empty,
+.loader {
+  text-align: center;
+  padding: 40px 20px;
+  color: #6b7280;
+  background: #fff;
+  border-radius: 10px;
+}
+
+.error {
+  background: #fee2e2;
+  color: #991b1b;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+  font-size: 14px;
+}
+
+.app-footer {
+  text-align: right;
+  margin-top: 16px;
+  color: #9ca3af;
+  font-size: 12px;
+}
+
+/* ---------- Темы пользователей ---------- */
+
+/* Ильдус — голубоватый */
+.app.theme-ildus {
+  background: #eaf3ff;
+  min-height: 100vh;
+  max-width: none;
+  padding: 32px 20px 60px;
+}
+
+.app.theme-ildus > * {
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.theme-ildus .filters,
+.theme-ildus .table-wrapper {
+  background: #f7fbff;
+}
+
+.theme-ildus .metric {
+  background: #eaf3ff;
+  border-color: #c3ddfb;
+}
+
+.theme-ildus .metric-profit {
+  background: #eafaf0;
+  border-color: #bde5c8;
+}
+
+/* Ильнур — светло-розовый */
+.app.theme-ilnur {
+  background: #fff5f8;
+  min-height: 100vh;
+  max-width: none;
+  padding: 32px 20px 60px;
+}
+
+.app.theme-ilnur > * {
+  max-width: 1100px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.theme-ilnur .filters,
+.theme-ilnur .table-wrapper {
+  background: #ffffff;
+}
+
+.theme-ilnur .metric {
+  background: #fff0f5;
+  border-color: #f5d0e0;
+}
+
+.theme-ilnur .metric-profit {
+  background: #eafaf0;
+  border-color: #bde5c8;
+}
+
+.theme-ilnur .metric-value {
+  color: #c2185b;
+}
+
+.theme-ilnur .user-tab:hover {
+  border-color: #c2185b;
+  color: #c2185b;
+}
+
+.theme-ilnur .user-tab.active {
+  background: #c2185b;
+  border-color: #c2185b;
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(194, 24, 91, 0.25);
+}
+
+.theme-ilnur .app-header h1 {
+  color: #c2185b;
+}
+
+.theme-ilnur .filters button {
+  background: #c2185b;
+}
+
+.theme-ilnur .filters button:hover:not(:disabled) {
+  background: #a01450;
+}
+
+/* ---------- Мобильная адаптация ---------- */
+
+@media (max-width: 480px) {
+  .user-tab {
+    padding: 12px 20px;
+    font-size: 15px;
+    min-width: 120px;
+  }
+
+  .app-header h1 {
+    font-size: 22px;
+  }
+
+  .filters {
+    padding: 12px;
+  }
+
+  .metrics {
+    margin-left: 0;
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
