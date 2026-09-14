@@ -26,13 +26,11 @@ if (USE_REDIS) {
   redis = new Redis({ url: REDIS_URL, token: REDIS_TOKEN });
   console.log("🔴 Хранилище оплаченных: Upstash Redis");
 } else {
-  console.log("📁 Хранилище оплаченных: локальные JSON-файлы (только /tmp на Vercel)");
+  console.log("📁 Хранилище оплаченных: локальные JSON-файлы (/tmp)");
 }
 
-// ---------- Файловое хранилище (fallback) ----------
-// На Vercel пишем в /tmp — единственную записываемую папку.
-// Файлы там временные, но код не падает.
-const DATA_DIR = process.env.VERCEL ? "/tmp" : path.join(process.cwd(), "data");
+// ---------- Файловое хранилище (только /tmp на Vercel) ----------
+const DATA_DIR = "/tmp";
 
 function ensureDataDir() {
   try {
@@ -210,7 +208,7 @@ app.post("/api/orders", async (req, res) => {
       let totalPrice = 0;
       let currency = "RUB";
 
-      (p.products || []).forEach((prod) => {
+      const products = (p.products || []).map((prod) => {
         const raw = prod.price;
         let amount = 0;
 
@@ -223,6 +221,12 @@ app.post("/api/orders", async (req, res) => {
 
         const qty = parseInt(prod.quantity || 1, 10);
         totalPrice += amount * qty;
+
+        return {
+          name: prod.name || "",
+          sku: prod.sku || null,
+          quantity: qty,
+        };
       });
 
       return {
@@ -232,6 +236,7 @@ app.post("/api/orders", async (req, res) => {
         currency: p.currency_code || currency || "RUB",
         acceptedAt: p.in_process_at,
         status: p.status,
+        products,
       };
     });
 

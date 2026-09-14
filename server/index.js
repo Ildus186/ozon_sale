@@ -11,7 +11,7 @@ dotenv.config();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// ---------- Определяем, использовать ли Redis ----------
+// ---------- Redis ----------
 const REDIS_URL =
   process.env.UPSTASH_REDIS_REST_URL ||
   process.env.KV_REST_API_URL ||
@@ -33,11 +33,15 @@ if (USE_REDIS) {
   console.log("📁 Хранилище оплаченных: локальные JSON-файлы");
 }
 
-// ---------- Файловое хранилище (fallback) ----------
-const DATA_DIR = path.join(__dirname, "data");
+// ---------- Файловое хранилище ----------
+const DATA_DIR = process.env.VERCEL
+  ? "/tmp"
+  : path.join(__dirname, "data");
 
 function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  try {
+    if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+  } catch {}
 }
 
 function paidFileFor(userId) {
@@ -45,8 +49,8 @@ function paidFileFor(userId) {
 }
 
 function loadPaidLocal(userId) {
-  ensureDataDir();
   try {
+    ensureDataDir();
     const file = paidFileFor(userId);
     if (!fs.existsSync(file)) return [];
     const arr = JSON.parse(fs.readFileSync(file, "utf-8"));
@@ -57,8 +61,12 @@ function loadPaidLocal(userId) {
 }
 
 function savePaidLocal(userId, arr) {
-  ensureDataDir();
-  fs.writeFileSync(paidFileFor(userId), JSON.stringify(arr, null, 2), "utf-8");
+  try {
+    ensureDataDir();
+    fs.writeFileSync(paidFileFor(userId), JSON.stringify(arr, null, 2), "utf-8");
+  } catch (err) {
+    console.error("⚠️ Не удалось сохранить локально:", err.message);
+  }
 }
 
 // ---------- Универсальные функции ----------
@@ -90,7 +98,7 @@ const PAGE_LIMIT = 100;
 const MAX_PAGES = 100;
 const PAGE_DELAY_MS = 200;
 
-// ---------- Список пользователей ----------
+// ---------- Пользователи ----------
 app.get("/api/users", (req, res) => {
   const list = Object.values(USERS).map((u) => ({
     id: u.id,
@@ -206,7 +214,7 @@ app.post("/api/orders", async (req, res) => {
       let totalPrice = 0;
       let currency = "RUB";
 
-      (p.products || []).forEach((prod) => {
+      const products = (p.products || []).map((prod) => {
         const raw = prod.price;
         let amount = 0;
 
@@ -219,6 +227,12 @@ app.post("/api/orders", async (req, res) => {
 
         const qty = parseInt(prod.quantity || 1, 10);
         totalPrice += amount * qty;
+
+        return {
+          name: prod.name || "",
+          sku: prod.sku || null,
+          quantity: qty,
+        };
       });
 
       return {
@@ -228,6 +242,7 @@ app.post("/api/orders", async (req, res) => {
         currency: p.currency_code || currency || "RUB",
         acceptedAt: p.in_process_at,
         status: p.status,
+        products,
       };
     });
 
@@ -238,13 +253,13 @@ app.post("/api/orders", async (req, res) => {
   }
 });
 
-// ---------- Запуск ----------
-// Локально — слушаем порт. На Vercel — экспортируем app как serverless-функцию.
+// ---------- Экспорт для Vercel ----------
+export default app;
+
+// ---------- Локальный запуск ----------
 if (!process.env.VERCEL) {
   const PORT = process.env.PORT || 4000;
   app.listen(PORT, () => {
     console.log(`✅ Server running on http://localhost:${PORT}`);
   });
 }
-
-export default app;

@@ -15,6 +15,16 @@ const MIN_DATE = "2026-09-03";
 // Статусы, которые НЕ учитываются в выручке и прибыли
 const EXCLUDED_STATUSES = new Set(["cancelled", "not_accepted"]);
 
+// Оставляем только заказы, где есть товар, чьё название начинается с "Печать"
+const INCLUDE_NAME_PREFIX = "печать";
+
+function hasIncludedProduct(order) {
+  const products = order.products || [];
+  return products.some((p) =>
+    (p.name || "").trim().toLowerCase().startsWith(INCLUDE_NAME_PREFIX)
+  );
+}
+
 function defaultRange() {
   const to = new Date();
   const rawSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -36,7 +46,6 @@ export default function App() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  // Загружаем список пользователей один раз
   useEffect(() => {
     fetchUsers()
       .then((data) => setUsers(data.users || []))
@@ -114,12 +123,15 @@ export default function App() {
     return Array.from(set).sort();
   }, [orders]);
 
+  // 1) только заказы с товаром на "Печать"
+  // 2) фильтр по статусу
   const filteredOrders = useMemo(() => {
-    if (statusFilter === "all") return orders;
-    return orders.filter((o) => o.status === statusFilter);
+    const matched = orders.filter(hasIncludedProduct);
+    if (statusFilter === "all") return matched;
+    return matched.filter((o) => o.status === statusFilter);
   }, [orders, statusFilter]);
 
-  // Выручка и прибыль считаются БЕЗ отменённых заказов
+  // Выручка и прибыль — без отменённых
   const { revenue, profit, cancelledInfo } = useMemo(() => {
     const counted = filteredOrders.filter(
       (o) => !EXCLUDED_STATUSES.has(o.status)
@@ -261,7 +273,7 @@ export default function App() {
         <strong>
           {filteredOrders.filter((o) => paid.has(o.postingNumber)).length}
         </strong>{" "}
-        · Ozon Seller API v4
+        · Только товары «Печать» · Ozon Seller API v4
       </footer>
     </div>
   );
