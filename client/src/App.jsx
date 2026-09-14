@@ -12,6 +12,9 @@ const FEE_PER_ORDER = 110;
 const PROFIT_COEFF = 0.47;
 const MIN_DATE = "2026-09-03";
 
+// Статусы, которые НЕ учитываются в выручке и прибыли
+const EXCLUDED_STATUSES = new Set(["cancelled", "not_accepted"]);
+
 function defaultRange() {
   const to = new Date();
   const rawSince = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
@@ -73,7 +76,6 @@ export default function App() {
     }
   }, [since, to, currentUser]);
 
-  // Перезагрузка при смене пользователя
   useEffect(() => {
     load();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -117,13 +119,31 @@ export default function App() {
     return orders.filter((o) => o.status === statusFilter);
   }, [orders, statusFilter]);
 
-  const { revenue, profit } = useMemo(() => {
-    const total = filteredOrders.reduce(
+  // Выручка и прибыль считаются БЕЗ отменённых заказов
+  const { revenue, profit, cancelledInfo } = useMemo(() => {
+    const counted = filteredOrders.filter(
+      (o) => !EXCLUDED_STATUSES.has(o.status)
+    );
+    const cancelled = filteredOrders.filter((o) =>
+      EXCLUDED_STATUSES.has(o.status)
+    );
+
+    const total = counted.reduce((sum, o) => sum + (o.totalPrice || 0), 0);
+    const rev = total - counted.length * FEE_PER_ORDER;
+
+    const cancelledSum = cancelled.reduce(
       (sum, o) => sum + (o.totalPrice || 0),
       0
     );
-    const rev = total - filteredOrders.length * FEE_PER_ORDER;
-    return { revenue: rev, profit: rev * PROFIT_COEFF };
+
+    return {
+      revenue: rev,
+      profit: rev * PROFIT_COEFF,
+      cancelledInfo: {
+        count: cancelled.length,
+        sum: cancelledSum,
+      },
+    };
   }, [filteredOrders]);
 
   const formatMoney = (v) =>
@@ -214,6 +234,14 @@ export default function App() {
           </div>
         </div>
       </section>
+
+      {cancelledInfo.count > 0 && (
+        <div className="cancelled-note">
+          🚫 Отменено заказов: <strong>{cancelledInfo.count}</strong> на сумму{" "}
+          <strong>{formatMoney(cancelledInfo.sum)}</strong> (не учтены в
+          выручке)
+        </div>
+      )}
 
       {error && <div className="error">Ошибка: {error}</div>}
 

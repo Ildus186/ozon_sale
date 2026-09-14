@@ -142,7 +142,7 @@ body {
   cursor: not-allowed;
 }
 
-/* ---------- Метрики (Выручка / Прибыль) ---------- */
+/* ---------- Метрики ---------- */
 
 .metrics {
   margin-left: auto;
@@ -184,6 +184,18 @@ body {
 
 .metric-profit .metric-value {
   color: #16794f;
+}
+
+/* ---------- Плашка отменённых ---------- */
+
+.cancelled-note {
+  margin-bottom: 16px;
+  padding: 10px 16px;
+  background: #fef2f2;
+  color: #991b1b;
+  border-radius: 8px;
+  font-size: 13px;
+  border: 1px solid #fecaca;
 }
 
 /* ---------- Таблица ---------- */
